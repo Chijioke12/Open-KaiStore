@@ -1,6 +1,6 @@
 'use strict';
 
-const REGISTRY_URL = 'https://raw.githubusercontent.com/open-kaistore/registry/main/apps.json';
+const REGISTRY_URL = 'https://raw.githubusercontent.com/Chijioke12/Open-KaiStore-Registry/main/apps.json';
 
 const AppStore = {
     apps: [],
