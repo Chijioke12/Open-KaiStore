@@ -1,10 +1,16 @@
 'use strict';
 
 const REGISTRY_URL = 'https://raw.githubusercontent.com/Chijioke12/Open-KaiStore-Registry/main/apps.json';
+const PROXY_URL = 'https://api.allorigins.win/raw?url=';
 
 const AppStore = {
     apps: [],
     currentIndex: 0,
+
+    getProxiedUrl: function(url) {
+        if (!url) return '';
+        return PROXY_URL + encodeURIComponent(url);
+    },
 
     init: function() {
         this.appList = document.getElementById('app-list');
@@ -13,8 +19,8 @@ const AppStore = {
     },
 
     fetchApps: function() {
-        // For development, we can mock if needed, but we'll try fetch
-        fetch(REGISTRY_URL)
+        const url = this.getProxiedUrl(REGISTRY_URL);
+        fetch(url)
             .then(response => response.json())
             .then(data => {
                 this.apps = data.apps;
@@ -84,9 +90,12 @@ const AppStore = {
         console.log('Installing:', app.name);
         
         if (navigator.mozApps && navigator.mozApps.mgmt) {
+            const downloadUrl = this.getProxiedUrl(app.download_url);
+            const manifestUrl = this.getProxiedUrl(app.manifest_url);
+
             const request = app.type === 'packaged' 
-                ? navigator.mozApps.mgmt.installPackage(app.download_url)
-                : navigator.mozApps.install(app.manifest_url);
+                ? navigator.mozApps.mgmt.installPackage(downloadUrl)
+                : navigator.mozApps.install(manifestUrl);
                 
             request.onsuccess = function() {
                 alert('Installation started for ' + app.name);
