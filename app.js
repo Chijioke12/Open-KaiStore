@@ -232,35 +232,37 @@ var AppStore = {
 	  installApp: function installApp(app) {
 	    if (!app) return;
 	    console.log('Installing:', app.name);
-	    if (navigator.mozApps && navigator.mozApps.mgmt) {
-	      var request = null;
-	      try {
-	        if (app.type === 'packaged') {
-	          if (navigator.mozApps.mgmt.installPackage && typeof navigator.mozApps.mgmt.installPackage === 'function') {
-	            request = navigator.mozApps.mgmt.installPackage(app.download_url);
-	          } else if (navigator.mozApps.mgmt.install && typeof navigator.mozApps.mgmt.install === 'function') {
-	            request = navigator.mozApps.mgmt.install(app.download_url);
-	          } else {
-	            throw new Error('No packaged install API (installPackage/install) on navigator.mozApps.mgmt');
-	          }
-	        } else {
-	          if (navigator.mozApps.install && typeof navigator.mozApps.install === 'function') {
-	            request = navigator.mozApps.install(app.manifest_url);
-	          } else if (navigator.mozApps.mgmt.install && typeof navigator.mozApps.mgmt.install === 'function') {
-	            request = navigator.mozApps.mgmt.install(app.manifest_url);
-	          } else {
-	            throw new Error('No hosted install API (install) available');
-	          }
-	        }
-	      } catch (e) {
-	        var detail = e && e.message ? e.message : String(e);
-	        var mgmtKeys = '';
-	        try {
-	          mgmtKeys = navigator.mozApps && navigator.mozApps.mgmt ? Object.keys(navigator.mozApps.mgmt).join(', ') : '';
-	        } catch (e2) {}
-	        alert("Install error:\n\n".concat(detail, "\n\nAvailable mgmt keys:\n").concat(mgmtKeys));
-	        return;
-	      }
+		    if (navigator.mozApps) {
+		      var request = null;
+		      try {
+		        if (app.type === 'packaged') {
+		          if (navigator.mozApps.installPackage && typeof navigator.mozApps.installPackage === 'function') {
+		            request = navigator.mozApps.installPackage(app.download_url);
+		          } else if (navigator.mozApps.mgmt && navigator.mozApps.mgmt.installPackage && typeof navigator.mozApps.mgmt.installPackage === 'function') {
+		            request = navigator.mozApps.mgmt.installPackage(app.download_url);
+		          } else if (navigator.mozApps.mgmt && navigator.mozApps.mgmt.install && typeof navigator.mozApps.mgmt.install === 'function') {
+		            request = navigator.mozApps.mgmt.install(app.download_url);
+		          } else {
+		            throw new Error('No packaged install API (installPackage) available on this device');
+		          }
+		        } else {
+		          if (navigator.mozApps.install && typeof navigator.mozApps.install === 'function') {
+		            request = navigator.mozApps.install(app.manifest_url);
+		          } else if (navigator.mozApps.mgmt && navigator.mozApps.mgmt.install && typeof navigator.mozApps.mgmt.install === 'function') {
+		            request = navigator.mozApps.mgmt.install(app.manifest_url);
+		          } else {
+		            throw new Error('No hosted install API (install) available');
+		          }
+		        }
+		      } catch (e) {
+		        var detail = e && e.message ? e.message : String(e);
+		        var apiInfo = '';
+		        try {
+		          apiInfo = "mozApps.installPackage: ".concat(typeof navigator.mozApps.installPackage, "\nmozApps.install: ").concat(typeof navigator.mozApps.install, "\nmozApps.mgmt: ").concat(!!navigator.mozApps.mgmt, "\nmozApps.mgmt.installPackage: ").concat(navigator.mozApps.mgmt ? typeof navigator.mozApps.mgmt.installPackage : 'n/a', "\nmozApps.mgmt.install: ").concat(navigator.mozApps.mgmt ? typeof navigator.mozApps.mgmt.install : 'n/a');
+		        } catch (e2) {}
+		        alert("Install error:\n\n".concat(detail, "\n\nAPI support:\n").concat(apiInfo));
+		        return;
+		      }
 	      request.onsuccess = function () {
 	        alert('Installation started for ' + app.name);
 	      };
