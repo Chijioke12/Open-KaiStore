@@ -152,7 +152,7 @@ var AppStore = {
             _t2 = _context2.v;
             lastError = _t2;
             console.warn('Failed to fetch apps from', url, _t2);
-            failures.push("".concat(url, ": ").concat(_t2 && _t2.message ? _t2.message : 'Unknown error'));
+	            failures.push("".concat(url, ": ").concat(_t2 && _t2.message ? _t2.message : String(_t2)));
           case 6:
             _i++;
             _context2.n = 1;
@@ -195,16 +195,22 @@ var AppStore = {
     });
     this.focusItem(0);
   },
-  focusItem: function focusItem(index) {
-    var items = this.appList.querySelectorAll('.app-item');
-    if (items[index]) {
-      items[index].focus();
-      items[index].scrollIntoView({
-        block: 'center'
-      });
-      this.currentIndex = index;
-    }
-  },
+	  focusItem: function focusItem(index) {
+	    var items = this.appList.querySelectorAll('.app-item');
+	    if (items[index]) {
+	      items[index].focus();
+	      try {
+	        items[index].scrollIntoView({
+	          block: 'center'
+	        });
+	      } catch (e) {
+	        try {
+	          items[index].scrollIntoView(false);
+	        } catch (e2) {}
+	      }
+	      this.currentIndex = index;
+	    }
+	  },
   setupEventListeners: function setupEventListeners() {
     var _this2 = this;
     window.addEventListener('keydown', function (e) {
@@ -223,14 +229,41 @@ var AppStore = {
       }
     });
   },
-  installApp: function installApp(app) {
-    if (!app) return;
-    console.log('Installing:', app.name);
-    if (navigator.mozApps && navigator.mozApps.mgmt) {
-      var request = app.type === 'packaged' ? navigator.mozApps.mgmt.installPackage(app.download_url) : navigator.mozApps.install(app.manifest_url);
-      request.onsuccess = function () {
-        alert('Installation started for ' + app.name);
-      };
+	  installApp: function installApp(app) {
+	    if (!app) return;
+	    console.log('Installing:', app.name);
+	    if (navigator.mozApps && navigator.mozApps.mgmt) {
+	      var request = null;
+	      try {
+	        if (app.type === 'packaged') {
+	          if (navigator.mozApps.mgmt.installPackage && typeof navigator.mozApps.mgmt.installPackage === 'function') {
+	            request = navigator.mozApps.mgmt.installPackage(app.download_url);
+	          } else if (navigator.mozApps.mgmt.install && typeof navigator.mozApps.mgmt.install === 'function') {
+	            request = navigator.mozApps.mgmt.install(app.download_url);
+	          } else {
+	            throw new Error('No packaged install API (installPackage/install) on navigator.mozApps.mgmt');
+	          }
+	        } else {
+	          if (navigator.mozApps.install && typeof navigator.mozApps.install === 'function') {
+	            request = navigator.mozApps.install(app.manifest_url);
+	          } else if (navigator.mozApps.mgmt.install && typeof navigator.mozApps.mgmt.install === 'function') {
+	            request = navigator.mozApps.mgmt.install(app.manifest_url);
+	          } else {
+	            throw new Error('No hosted install API (install) available');
+	          }
+	        }
+	      } catch (e) {
+	        var detail = e && e.message ? e.message : String(e);
+	        var mgmtKeys = '';
+	        try {
+	          mgmtKeys = navigator.mozApps && navigator.mozApps.mgmt ? Object.keys(navigator.mozApps.mgmt).join(', ') : '';
+	        } catch (e2) {}
+	        alert("Install error:\n\n".concat(detail, "\n\nAvailable mgmt keys:\n").concat(mgmtKeys));
+	        return;
+	      }
+	      request.onsuccess = function () {
+	        alert('Installation started for ' + app.name);
+	      };
       request.onerror = function () {
         alert('Installation failed: ' + this.error.name);
       };
