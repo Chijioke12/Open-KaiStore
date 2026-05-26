@@ -6,6 +6,17 @@ const AppStore = {
     apps: [],
     currentIndex: 0,
     requestTimeoutMs: 15000,
+    _lastAlertKey: '',
+
+    alertOnce: function(title, detail) {
+        try {
+            const msg = detail ? `${title}\n\n${detail}` : title;
+            const key = msg.slice(0, 300);
+            if (key === this._lastAlertKey) return;
+            this._lastAlertKey = key;
+            alert(msg);
+        } catch (e) {}
+    },
 
     fetchText: function(url) {
         const timeoutMs = this.requestTimeoutMs;
@@ -94,6 +105,7 @@ const AppStore = {
         ];
 
         let lastError = null;
+        const failures = [];
         for (const url of candidates) {
             try {
                 const data = await this.fetchJson(url);
@@ -108,12 +120,18 @@ const AppStore = {
             } catch (err) {
                 lastError = err;
                 console.warn('Failed to fetch apps from', url, err);
+                failures.push(`${url}: ${err && err.message ? err.message : 'Unknown error'}`);
             }
         }
 
         console.error('Failed to fetch apps:', lastError);
         const detail = lastError && lastError.message ? ` (${lastError.message})` : '';
         this.appList.innerHTML = `<div class="error">Failed to load apps. Check connection.${detail}</div>`;
+        if (failures.length) {
+            this.alertOnce('Failed to load apps', failures.slice(0, 4).join('\n'));
+        } else {
+            this.alertOnce('Failed to load apps', lastError && lastError.message ? lastError.message : '');
+        }
     },
 
     renderApps: function() {
@@ -197,6 +215,9 @@ window.onerror = function(message, source, lineno, colno, error) {
         if (!el) return;
         const msg = error && error.message ? error.message : (message || 'Unknown error');
         el.innerHTML = `<div class="error">App error: ${msg}</div>`;
+        try {
+            AppStore.alertOnce('App error', `${msg}\n${source || ''}:${lineno || 0}`);
+        } catch (e) {}
     } catch (e) {}
 };
 
@@ -206,5 +227,8 @@ window.onload = () => {
     } catch (e) {
         const el = document.getElementById('app-list');
         if (el) el.innerHTML = `<div class="error">Init failed: ${e && e.message ? e.message : 'Unknown error'}</div>`;
+        try {
+            AppStore.alertOnce('Init failed', e && e.message ? e.message : 'Unknown error');
+        } catch (e2) {}
     }
 };
