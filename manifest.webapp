@@ -1,5 +1,7 @@
 {
   "name": "Open-KaiStore",
+  "version": "1.0.0",
+  "origin": "app://open-kaistore.chijioke.com",
   "description": "A decentralized app store for KaiOS",
   "launch_path": "/index.html",
   "type": "privileged",
