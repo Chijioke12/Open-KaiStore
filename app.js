@@ -235,17 +235,17 @@ var AppStore = {
 		    if (navigator.mozApps) {
 		      var request = null;
 		      try {
-		        if (app.type === 'packaged') {
-		          if (navigator.mozApps.installPackage && typeof navigator.mozApps.installPackage === 'function') {
-		            request = navigator.mozApps.installPackage(app.download_url);
-		          } else if (navigator.mozApps.mgmt && navigator.mozApps.mgmt.installPackage && typeof navigator.mozApps.mgmt.installPackage === 'function') {
-		            request = navigator.mozApps.mgmt.installPackage(app.download_url);
-		          } else if (navigator.mozApps.mgmt && navigator.mozApps.mgmt.install && typeof navigator.mozApps.mgmt.install === 'function') {
-		            request = navigator.mozApps.mgmt.install(app.download_url);
-		          } else {
-		            throw new Error('No packaged install API (installPackage) available on this device');
-		          }
-		        } else {
+	        if (app.type === 'packaged') {
+	          if (navigator.mozApps.installPackage && typeof navigator.mozApps.installPackage === 'function') {
+	            request = navigator.mozApps.installPackage(app.download_url);
+	          } else if (navigator.mozApps.mgmt && navigator.mozApps.mgmt.installPackage && typeof navigator.mozApps.mgmt.installPackage === 'function') {
+	            request = navigator.mozApps.mgmt.installPackage(app.download_url);
+	          } else {
+	            // Do NOT fall back to mozApps.mgmt.install here: that API expects a hosted app manifest URL,
+	            // and passing a ZIP typically results in INVALID_MANIFEST_CONTENT_TYPE.
+	            throw new Error('This device does not support packaged installs via installPackage(). Use OmniSD/File Manager install, or add the app as a hosted app (manifest_url).');
+	          }
+	        } else {
 		          if (navigator.mozApps.install && typeof navigator.mozApps.install === 'function') {
 		            request = navigator.mozApps.install(app.manifest_url);
 		          } else if (navigator.mozApps.mgmt && navigator.mozApps.mgmt.install && typeof navigator.mozApps.mgmt.install === 'function') {
