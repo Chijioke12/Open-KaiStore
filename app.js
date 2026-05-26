@@ -1,15 +1,22 @@
 'use strict';
 
-const REGISTRY_URL = 'https://raw.githubusercontent.com/Chijioke12/Open-KaiStore-Registry/main/apps.json';
-const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+const REGISTRY_URL = 'https://raw.githubusercontent.com/Chijioke12/Open-KaiStore-Registry/refs/heads/main/apps.json';
 
 const AppStore = {
     apps: [],
     currentIndex: 0,
 
-    getProxiedUrl: function(url) {
-        if (!url) return '';
-        return PROXY_URL + encodeURIComponent(url);
+    fetchJson: async function(url) {
+        const response = await fetch(url, { cache: 'no-store' });
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status} for ${url}`);
+        }
+        const text = await response.text();
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            throw new Error(`Invalid JSON from ${url}`);
+        }
     },
 
     init: function() {
@@ -18,18 +25,35 @@ const AppStore = {
         this.setupEventListeners();
     },
 
-    fetchApps: function() {
-        const url = this.getProxiedUrl(REGISTRY_URL);
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                this.apps = data.apps;
+    fetchApps: async function() {
+        const candidates = [
+            './apps.json',
+            '/open-kaistore-registry/apps.json',
+            '../open-kaistore-registry/apps.json',
+            REGISTRY_URL,
+        ];
+
+        let lastError = null;
+        for (const url of candidates) {
+            try {
+                const data = await this.fetchJson(url);
+                const apps = (data && Array.isArray(data.apps)) ? data.apps : [];
+                if (apps.length === 0 && url !== candidates[candidates.length - 1]) {
+                    console.warn('Registry returned 0 apps from', url, '- trying next source');
+                    continue;
+                }
+                this.apps = apps;
                 this.renderApps();
-            })
-            .catch(err => {
-                console.error('Failed to fetch apps:', err);
-                this.appList.innerHTML = '<div class="error">Failed to load apps. Check connection.</div>';
-            });
+                return;
+            } catch (err) {
+                lastError = err;
+                console.warn('Failed to fetch apps from', url, err);
+            }
+        }
+
+        console.error('Failed to fetch apps:', lastError);
+        const detail = lastError && lastError.message ? ` (${lastError.message})` : '';
+        this.appList.innerHTML = `<div class="error">Failed to load apps. Check connection.${detail}</div>`;
     },
 
     renderApps: function() {
@@ -90,12 +114,9 @@ const AppStore = {
         console.log('Installing:', app.name);
         
         if (navigator.mozApps && navigator.mozApps.mgmt) {
-            const downloadUrl = this.getProxiedUrl(app.download_url);
-            const manifestUrl = this.getProxiedUrl(app.manifest_url);
-
             const request = app.type === 'packaged' 
-                ? navigator.mozApps.mgmt.installPackage(downloadUrl)
-                : navigator.mozApps.install(manifestUrl);
+                ? navigator.mozApps.mgmt.installPackage(app.download_url)
+                : navigator.mozApps.install(app.manifest_url);
                 
             request.onsuccess = function() {
                 alert('Installation started for ' + app.name);

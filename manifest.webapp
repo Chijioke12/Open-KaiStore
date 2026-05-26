@@ -4,7 +4,7 @@
   "origin": "app://oks",
   "description": "A decentralized app store for KaiOS",
   "launch_path": "/index.html",
-  "type": "privileged",
+  "type": "certified",
   "developer": {
     "name": "Open-KaiStore Team",
     "url": "https://github.com/open-kaistore"
